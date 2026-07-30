@@ -23,13 +23,10 @@ playground.xcworkspace
 # Packages/
 # Package.pins
 # Package.resolved
-# *.xcodeproj
-#
-# Xcode automatically generates this directory with a .xcworkspacedata file and xcuserdata
-# hence it is not needed unless you have added a package configuration file to your project
-# .swiftpm
+*.xcodeproj
 
 .build/
+.swiftpm/
 
 # CocoaPods
 #
@@ -60,3 +57,7 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# macOS / project-local
+.DS_Store
+.claude/settings.local.json
