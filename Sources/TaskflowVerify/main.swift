@@ -114,6 +114,61 @@ do {
     }
 }
 
+// MARK: - TaskFileWriter (in-place status/checklist edits, round-tripped through the parser)
+
+do {
+    let original = loadFixture("tasks_v2")
+    let doc = TaskMasterMarkdownParser.parse(original)
+
+    // .tableRow: this is the exact shape that had a real bug — replacingTableCell built the
+    // trailing-whitespace padding via `cellText.reversed().prefix(while:).reversed()` without
+    // wrapping it back into a String, so the written cell held Swift's debug dump of a
+    // ReversedCollection instead of plain spaces. Assert both the round-tripped status *and*
+    // that no such debug text leaked into the file.
+    if let row112 = doc.item(withId: "1.1.2") {
+        check("writer setup: row 1.1.2 starts done", row112.status == .done)
+        if let written = TaskFileWriter.settingStatus(.pending, for: row112, in: original) {
+            check("writer: no debug-dump leakage in written table row", !written.contains("ReversedCollection"))
+            check("writer: line count unchanged (in-place edit only)",
+                  written.components(separatedBy: "\n").count == original.components(separatedBy: "\n").count)
+            let reparsed = TaskMasterMarkdownParser.parse(written)
+            check("writer: row 1.1.2 status round-trips to pending", reparsed.item(withId: "1.1.2")?.status == .pending)
+            check("writer: sibling row 1.1.1 untouched", reparsed.item(withId: "1.1.1")?.status == .pending)
+        } else {
+            check("writer: settingStatus(.tableRow) returned a value", false)
+        }
+    } else {
+        check("writer setup: row 1.1.2 exists", false)
+    }
+
+    // .inlineBacktickAfterBold
+    if let subtask12 = doc.item(withId: "1.2"), let written = TaskFileWriter.settingStatus(.done, for: subtask12, in: original) {
+        let reparsed = TaskMasterMarkdownParser.parse(written)
+        check("writer: subtask 1.2 status round-trips to done", reparsed.item(withId: "1.2")?.status == .done)
+    } else {
+        check("writer: settingStatus(.inlineBacktickAfterBold) returned a value", false)
+    }
+
+    // .fencedField (top-level task's own `# Status:` line)
+    if let task1 = doc.item(withId: "1"), let written = TaskFileWriter.settingStatus(.done, for: task1, in: original) {
+        let reparsed = TaskMasterMarkdownParser.parse(written)
+        check("writer: task 1 status round-trips to done", reparsed.item(withId: "1")?.status == .done)
+    } else {
+        check("writer: settingStatus(.fencedField) returned a value", false)
+    }
+
+    // Checklist toggle round-trip.
+    let tasksDoc = TaskMasterMarkdownParser.parse(loadFixture("tasks"))
+    if let task1 = tasksDoc.item(withId: "1"), let firstCheck = task1.testStrategy.first {
+        check("writer setup: checklist item starts unchecked", firstCheck.checked == false)
+        let written = TaskFileWriter.togglingChecklistItem(firstCheck, in: loadFixture("tasks"))
+        let reparsed = TaskMasterMarkdownParser.parse(written)
+        check("writer: checklist item round-trips to checked", reparsed.item(withId: "1")?.testStrategy.first?.checked == true)
+    } else {
+        check("writer setup: checklist item exists", false)
+    }
+}
+
 // MARK: - ScheduleEngine (synthetic fixture, fixed dates for determinism)
 
 do {
