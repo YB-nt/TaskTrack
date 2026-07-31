@@ -16,6 +16,7 @@ struct SyncView: View {
                 Text("Sync").font(DesignTokens.Typography.heading(20))
 
                 fileCard
+                supplementCard
                 if store.document != nil {
                     statsRow
                     frequencyCard
@@ -104,6 +105,53 @@ struct SyncView: View {
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    private var supplementCard: some View {
+        CardView(elevated: true) {
+            HStack {
+                Text("하위 파일 (문제 상세)")
+                    .font(DesignTokens.Typography.heading(14))
+                Spacer()
+                Button("추가") { addSupplementFile() }
+                    .buttonStyle(.taskflowSecondary)
+            }
+            if store.supplementFiles.isEmpty {
+                Text("Phase별 문제 상세 파일(예: Phase2.md)을 추가하면, 같은 \"문제 X-Y\" 번호를 가진 항목의 세부내용에 자동으로 반영됩니다.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(DesignTokens.Colors.neutral400)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(store.supplementFiles) { file in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(file.url.lastPathComponent)
+                                    .font(.system(size: 13))
+                                Text("\(file.problemCount)개 문제 연결됨")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(DesignTokens.Colors.neutral400)
+                            }
+                            Spacer()
+                            Button {
+                                store.removeSupplementFile(file)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(DesignTokens.Colors.neutral500)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        if file.id != store.supplementFiles.last?.id {
+                            Divider().background(DesignTokens.Colors.divider)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func addSupplementFile() {
+        guard let url = FilePicker.pickMarkdownFile() else { return }
+        store.addSupplementFile(url: url)
     }
 
     private var frequencyCard: some View {

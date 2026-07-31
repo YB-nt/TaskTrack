@@ -181,6 +181,33 @@ do {
     check("week1: chip 1.2 not locked (predecessor 1.1 done)", chip12?.isLocked == false)
 }
 
+// MARK: - ProblemDetailParser (하위 파일, e.g. Phase2.md)
+
+do {
+    let parsed = ProblemDetailParser.parse(loadFixture("phase_sample"))
+
+    check("phase_sample: 2 problems parsed (checkpoint excluded)", parsed.count == 2)
+    check("phase_sample: 6-1 body contains 목표", parsed["6-1"]?.contains("목표") == true)
+    check("phase_sample: 6-1 body excludes next heading", parsed["6-1"]?.contains("6-2") == false)
+    check("phase_sample: 6-2 body captured", parsed["6-2"]?.contains("파일 오프셋") == true)
+    check("phase_sample: checkpoint (no 문제 X-Y id) not captured", parsed["체크포인트"] == nil)
+
+    check("problemId: matches tasks.md-style row title",
+          ProblemDetailParser.problemId(in: "문제 6-1 — 파일 복사 두 벌") == "6-1")
+    check("problemId: matches 하위 파일 heading",
+          ProblemDetailParser.problemId(in: "### 문제 7-2. fork + exec — 미니 프로세스 실행기") == "7-2")
+    check("problemId: nil when no 문제 X-Y token",
+          ProblemDetailParser.problemId(in: "체크포인트 — fd ↔ 소켓 연결고리") == nil)
+}
+
+// MARK: - TaskDocumentStore supplement file merge
+
+do {
+    let doc = TaskDocumentStore()
+    check("fresh store: no supplement files", doc.supplementFiles.isEmpty)
+    check("fresh store: unmatched problem id returns nil", doc.supplementDetail(for: "6-1") == nil)
+}
+
 print("\(checkCount - failureCount)/\(checkCount) checks passed")
 if failureCount > 0 {
     exit(1)
