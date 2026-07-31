@@ -114,6 +114,61 @@ do {
     }
 }
 
+// MARK: - TaskFileWriter (in-place status/checklist edits, round-tripped through the parser)
+
+do {
+    let original = loadFixture("tasks_v2")
+    let doc = TaskMasterMarkdownParser.parse(original)
+
+    // .tableRow: this is the exact shape that had a real bug — replacingTableCell built the
+    // trailing-whitespace padding via `cellText.reversed().prefix(while:).reversed()` without
+    // wrapping it back into a String, so the written cell held Swift's debug dump of a
+    // ReversedCollection instead of plain spaces. Assert both the round-tripped status *and*
+    // that no such debug text leaked into the file.
+    if let row112 = doc.item(withId: "1.1.2") {
+        check("writer setup: row 1.1.2 starts done", row112.status == .done)
+        if let written = TaskFileWriter.settingStatus(.pending, for: row112, in: original) {
+            check("writer: no debug-dump leakage in written table row", !written.contains("ReversedCollection"))
+            check("writer: line count unchanged (in-place edit only)",
+                  written.components(separatedBy: "\n").count == original.components(separatedBy: "\n").count)
+            let reparsed = TaskMasterMarkdownParser.parse(written)
+            check("writer: row 1.1.2 status round-trips to pending", reparsed.item(withId: "1.1.2")?.status == .pending)
+            check("writer: sibling row 1.1.1 untouched", reparsed.item(withId: "1.1.1")?.status == .pending)
+        } else {
+            check("writer: settingStatus(.tableRow) returned a value", false)
+        }
+    } else {
+        check("writer setup: row 1.1.2 exists", false)
+    }
+
+    // .inlineBacktickAfterBold
+    if let subtask12 = doc.item(withId: "1.2"), let written = TaskFileWriter.settingStatus(.done, for: subtask12, in: original) {
+        let reparsed = TaskMasterMarkdownParser.parse(written)
+        check("writer: subtask 1.2 status round-trips to done", reparsed.item(withId: "1.2")?.status == .done)
+    } else {
+        check("writer: settingStatus(.inlineBacktickAfterBold) returned a value", false)
+    }
+
+    // .fencedField (top-level task's own `# Status:` line)
+    if let task1 = doc.item(withId: "1"), let written = TaskFileWriter.settingStatus(.done, for: task1, in: original) {
+        let reparsed = TaskMasterMarkdownParser.parse(written)
+        check("writer: task 1 status round-trips to done", reparsed.item(withId: "1")?.status == .done)
+    } else {
+        check("writer: settingStatus(.fencedField) returned a value", false)
+    }
+
+    // Checklist toggle round-trip.
+    let tasksDoc = TaskMasterMarkdownParser.parse(loadFixture("tasks"))
+    if let task1 = tasksDoc.item(withId: "1"), let firstCheck = task1.testStrategy.first {
+        check("writer setup: checklist item starts unchecked", firstCheck.checked == false)
+        let written = TaskFileWriter.togglingChecklistItem(firstCheck, in: loadFixture("tasks"))
+        let reparsed = TaskMasterMarkdownParser.parse(written)
+        check("writer: checklist item round-trips to checked", reparsed.item(withId: "1")?.testStrategy.first?.checked == true)
+    } else {
+        check("writer setup: checklist item exists", false)
+    }
+}
+
 // MARK: - ScheduleEngine (synthetic fixture, fixed dates for determinism)
 
 do {
@@ -152,15 +207,19 @@ do {
         utc.date(from: DateComponents(year: y, month: m, day: d))!
     }
 
-    // now = week 1 (2026-01-10): only 1.1 is done, nothing else has started yet.
+    // now = week 1 (2026-01-10): only 1.1 is done, nothing else has started yet — but the
+    // schedule is running ahead (33% actual vs 0% planned), so 1.2 (Week 2, next week) is
+    // pulled forward into today's list. 1.3 (Week 3) stays out since it's two weeks out.
     let scheduleWeek1 = ScheduleEngine.compute(document: doc, now: date(2026, 1, 10))
     check("week1: currentWeek == 1", scheduleWeek1.currentWeek == 1)
     check("week1: overall total == 3", scheduleWeek1.overall.total == 3)
     check("week1: overall doneCount == 1", scheduleWeek1.overall.doneCount == 1)
     check("week1: overall pct == 33", scheduleWeek1.overall.pct == 33)
-    check("week1: today list empty (nothing started)", scheduleWeek1.todayItems.isEmpty)
     check("week1: planned pct == 0 (current <= min start)", scheduleWeek1.overallPlannedPct == 0)
     check("week1: delta tone ahead (33% actual vs 0% planned)", scheduleWeek1.overallDelta?.tone == .ahead)
+    check("week1: today list pulls forward only 1.2 (next week, since ahead)", scheduleWeek1.todayItems.map(\.id) == ["1.2"])
+    check("week1: 1.2 flagged as pulled forward", scheduleWeek1.todayItems.first?.isPulledForwardNextWeek == true)
+    check("week1: 1.2 not locked (predecessor 1.1 done)", scheduleWeek1.todayItems.first?.isLocked == false)
 
     // now = week 3 (2026-01-20): 1.2 and 1.3 have both started; 1.2 unlocks early because
     // its predecessor (1.1) is done, 1.3 stays locked because its predecessor (1.2) isn't.
@@ -171,6 +230,8 @@ do {
     check("week3: due-soon has exactly 1.2 (ends week2, within 3 days of overdue)",
           scheduleWeek3.dueSoonItems.map(\.id) == ["1.2"])
     check("week3: delta tone behind (33% actual vs 100% planned)", scheduleWeek3.overallDelta?.tone == .behind)
+    check("week3: nothing flagged as pulled-forward (already behind, not ahead)",
+          scheduleWeek3.todayItems.allSatisfy { !$0.isPulledForwardNextWeek })
 
     // Lock check needs the item to not have already started: use week 1 for this, where
     // 1.3's predecessor section (1.2) is pending (not done) so 1.3 should be locked.

@@ -11,6 +11,7 @@ struct RootView: View {
     @State private var store = TaskDocumentStore()
     @State private var selection: AppSection? = .dashboard
     @State private var selectedItemId: String?
+    @State private var scrollToPhaseId: String?
 
     var body: some View {
         NavigationSplitView {
@@ -24,9 +25,12 @@ struct RootView: View {
             Group {
                 switch selection ?? .dashboard {
                 case .dashboard:
-                    DashboardView(store: store, selectedItemId: $selectedItemId)
+                    DashboardView(store: store, selectedItemId: $selectedItemId, onSelectPhase: { phaseId in
+                        scrollToPhaseId = phaseId
+                        selection = .curriculum
+                    })
                 case .curriculum:
-                    CurriculumView(store: store, selectedItemId: $selectedItemId)
+                    CurriculumView(store: store, selectedItemId: $selectedItemId, scrollToPhaseId: $scrollToPhaseId)
                 case .sync:
                     SyncView(store: store)
                 }
