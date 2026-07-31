@@ -66,3 +66,6 @@ fastlane/test_output
 # Agent harness working notes (local audit trail, not project deliverable)
 _workspace/
 _workspace_*/
+
+# Personal reference files (real roadmap/exercise content + symlinks to local paths)
+reference/
