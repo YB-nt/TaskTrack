@@ -20,6 +20,7 @@ private enum StatusFilter: String, CaseIterable {
 struct CurriculumView: View {
     var store: TaskDocumentStore
     @Binding var selectedItemId: String?
+    @Binding var scrollToPhaseId: String?
     @State private var filter: StatusFilter = .all
     @State private var searchText: String = ""
 
@@ -40,12 +41,19 @@ struct CurriculumView: View {
                     .overlay(RoundedRectangle(cornerRadius: DesignTokens.Radius.md).stroke(DesignTokens.Colors.divider, lineWidth: 1))
                     .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.md))
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 20) {
-                        ForEach(store.document!.tasks) { phase in
-                            phaseSection(phase)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 20) {
+                            ForEach(store.document!.tasks) { phase in
+                                phaseSection(phase)
+                                    .id(phase.id)
+                            }
                         }
                     }
+                    // Dashboard에서 처음 Curriculum으로 전환되는 경우 이 뷰 자체가 새로
+                    // 생성되므로 onChange는 초기값에 반응하지 않는다 — onAppear로도 잡는다.
+                    .onAppear { jumpToPendingPhase(using: proxy) }
+                    .onChange(of: scrollToPhaseId) { _, _ in jumpToPendingPhase(using: proxy) }
                 }
             } else {
                 CardView {
@@ -104,6 +112,19 @@ struct CurriculumView: View {
                 }
             }
         }
+    }
+
+    private func jumpToPendingPhase(using proxy: ScrollViewProxy) {
+        guard let phaseId = scrollToPhaseId else { return }
+        filter = .all
+        searchText = ""
+        // 필터 리셋으로 숨겨져 있던 섹션이 다시 렌더링된 뒤 스크롤해야 하므로 한 틱 미룬다.
+        DispatchQueue.main.async {
+            withAnimation {
+                proxy.scrollTo(phaseId, anchor: .top)
+            }
+        }
+        scrollToPhaseId = nil
     }
 
     private func filteredSteps(_ leaves: [TaskItem]) -> [TaskItem] {

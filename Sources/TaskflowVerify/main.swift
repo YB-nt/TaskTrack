@@ -152,15 +152,19 @@ do {
         utc.date(from: DateComponents(year: y, month: m, day: d))!
     }
 
-    // now = week 1 (2026-01-10): only 1.1 is done, nothing else has started yet.
+    // now = week 1 (2026-01-10): only 1.1 is done, nothing else has started yet — but the
+    // schedule is running ahead (33% actual vs 0% planned), so 1.2 (Week 2, next week) is
+    // pulled forward into today's list. 1.3 (Week 3) stays out since it's two weeks out.
     let scheduleWeek1 = ScheduleEngine.compute(document: doc, now: date(2026, 1, 10))
     check("week1: currentWeek == 1", scheduleWeek1.currentWeek == 1)
     check("week1: overall total == 3", scheduleWeek1.overall.total == 3)
     check("week1: overall doneCount == 1", scheduleWeek1.overall.doneCount == 1)
     check("week1: overall pct == 33", scheduleWeek1.overall.pct == 33)
-    check("week1: today list empty (nothing started)", scheduleWeek1.todayItems.isEmpty)
     check("week1: planned pct == 0 (current <= min start)", scheduleWeek1.overallPlannedPct == 0)
     check("week1: delta tone ahead (33% actual vs 0% planned)", scheduleWeek1.overallDelta?.tone == .ahead)
+    check("week1: today list pulls forward only 1.2 (next week, since ahead)", scheduleWeek1.todayItems.map(\.id) == ["1.2"])
+    check("week1: 1.2 flagged as pulled forward", scheduleWeek1.todayItems.first?.isPulledForwardNextWeek == true)
+    check("week1: 1.2 not locked (predecessor 1.1 done)", scheduleWeek1.todayItems.first?.isLocked == false)
 
     // now = week 3 (2026-01-20): 1.2 and 1.3 have both started; 1.2 unlocks early because
     // its predecessor (1.1) is done, 1.3 stays locked because its predecessor (1.2) isn't.
@@ -171,6 +175,8 @@ do {
     check("week3: due-soon has exactly 1.2 (ends week2, within 3 days of overdue)",
           scheduleWeek3.dueSoonItems.map(\.id) == ["1.2"])
     check("week3: delta tone behind (33% actual vs 100% planned)", scheduleWeek3.overallDelta?.tone == .behind)
+    check("week3: nothing flagged as pulled-forward (already behind, not ahead)",
+          scheduleWeek3.todayItems.allSatisfy { !$0.isPulledForwardNextWeek })
 
     // Lock check needs the item to not have already started: use week 1 for this, where
     // 1.3's predecessor section (1.2) is pending (not done) so 1.3 should be locked.

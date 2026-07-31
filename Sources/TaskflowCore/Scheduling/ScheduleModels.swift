@@ -35,6 +35,9 @@ public struct ScheduleItem: Identifiable, Equatable {
     public var phaseTitle: String
     public var sectionTitle: String
     public var isLocked: Bool
+    /// True when this item hasn't started this week yet but was pulled into "Today"
+    /// because the overall schedule is running ahead (see `ScheduleEngine`).
+    public var isPulledForwardNextWeek: Bool
 }
 
 /// One top-level task ("Phase" in the dashboard), summarized for the overview track list.

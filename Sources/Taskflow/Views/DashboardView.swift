@@ -10,6 +10,7 @@ private enum DashboardScope: String, CaseIterable {
 struct DashboardView: View {
     var store: TaskDocumentStore
     @Binding var selectedItemId: String?
+    var onSelectPhase: (String) -> Void
     @State private var scope: DashboardScope = .overview
 
     var body: some View {
@@ -28,7 +29,7 @@ struct DashboardView: View {
                     scopeCard(document: document, schedule: schedule)
 
                     if scope == .overview {
-                        phaseTracks(schedule.phaseTracks)
+                        phaseTracks(schedule.phaseTracks, onSelectPhase: onSelectPhase)
                     }
                 } else {
                     emptyState
@@ -120,6 +121,9 @@ struct DashboardView: View {
                                     .foregroundStyle(DesignTokens.Colors.neutral400)
                             }
                             Spacer()
+                            if item.isPulledForwardNextWeek {
+                                TagView("다음주", style: .outline)
+                            }
                             if let priority = item.priority {
                                 TagView(priority.displayLabel, style: item.isLocked ? .neutral : .accent2)
                             }
@@ -135,40 +139,46 @@ struct DashboardView: View {
         }
     }
 
-    private func phaseTracks(_ tracks: [PhaseTrack]) -> some View {
+    private func phaseTracks(_ tracks: [PhaseTrack], onSelectPhase: @escaping (String) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(tracks) { track in
-                CardView {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(track.title)
-                            .font(DesignTokens.Typography.heading(12))
-                            .foregroundStyle(DesignTokens.Colors.neutral200)
-                        Spacer()
-                        TagView("\(track.stats.doneCount)/\(track.stats.total)", style: track.stats.pct >= 100 ? .accent : (track.stats.pct > 0 ? .outline : .neutral))
-                    }
-                    ProgressBarView(progress: Double(track.stats.pct), height: 4)
-                    HStack {
-                        if let due = track.dueDateLabel {
-                            Text("Due \(due)")
-                                .font(.system(size: 10))
-                                .foregroundStyle(DesignTokens.Colors.neutral400)
+                Button {
+                    onSelectPhase(track.id)
+                } label: {
+                    CardView {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(track.title)
+                                .font(DesignTokens.Typography.heading(12))
+                                .foregroundStyle(DesignTokens.Colors.neutral200)
+                            Spacer()
+                            TagView("\(track.stats.doneCount)/\(track.stats.total)", style: track.stats.pct >= 100 ? .accent : (track.stats.pct > 0 ? .outline : .neutral))
                         }
-                        Spacer()
-                        if track.isActiveNow, let current = track.currentItemTitle {
-                            Text("진행중 · \(current)")
-                                .font(.system(size: 10))
-                                .foregroundStyle(DesignTokens.Colors.accent300)
-                                .lineLimit(1)
+                        ProgressBarView(progress: Double(track.stats.pct), height: 4)
+                        HStack {
+                            if let due = track.dueDateLabel {
+                                Text("Due \(due)")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(DesignTokens.Colors.neutral400)
+                            }
+                            Spacer()
+                            if track.isActiveNow, let current = track.currentItemTitle {
+                                Text("진행중 · \(current)")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(DesignTokens.Colors.accent300)
+                                    .lineLimit(1)
+                            }
+                        }
+                        HStack(spacing: 4) {
+                            ForEach(track.chips) { chip in
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(chipColor(chip))
+                                    .frame(width: 18, height: 18)
+                            }
                         }
                     }
-                    HStack(spacing: 4) {
-                        ForEach(track.chips) { chip in
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(chipColor(chip))
-                                .frame(width: 18, height: 18)
-                        }
-                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
             }
         }
     }

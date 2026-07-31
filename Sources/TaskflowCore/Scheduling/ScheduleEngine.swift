@@ -36,11 +36,17 @@ public enum ScheduleEngine {
         var dueSoonItems: [ScheduleItem] = []
 
         if let currentWeek {
+            // 계획보다 앞서가는 중이면(overallDelta.tone == .ahead) 다음 주차에 시작하는
+            // 섹션도 "오늘 할 일"에 미리 당겨온다 — 이번 주 몫을 이미 끝냈다면 다음 걸 보여준다.
+            let isAheadOfSchedule = overallDelta?.tone == .ahead
             for phase in phases {
                 for section in phase.sections {
                     guard let next = section.leaves.first(where: { $0.status != .done }) else { continue }
-                    guard let startWeek = next.window?.startWeek, startWeek <= currentWeek else { continue }
-                    todayItems.append(scheduleItem(next, phase: phase, section: section, currentWeek: currentWeek))
+                    guard let startWeek = next.window?.startWeek else { continue }
+                    let isCurrentWeek = startWeek <= currentWeek
+                    let isPulledForwardNextWeek = isAheadOfSchedule && startWeek == currentWeek + 1
+                    guard isCurrentWeek || isPulledForwardNextWeek else { continue }
+                    todayItems.append(scheduleItem(next, phase: phase, section: section, currentWeek: currentWeek, isPulledForwardNextWeek: isPulledForwardNextWeek))
                 }
             }
             todayItems.sort { ($0.priority?.weight ?? 0) > ($1.priority?.weight ?? 0) }
@@ -112,7 +118,10 @@ public enum ScheduleEngine {
         }
     }
 
-    private static func scheduleItem(_ item: TaskItem, phase: Phase, section: Section, currentWeek: Int?) -> ScheduleItem {
+    private static func scheduleItem(
+        _ item: TaskItem, phase: Phase, section: Section, currentWeek: Int?,
+        isPulledForwardNextWeek: Bool = false
+    ) -> ScheduleItem {
         ScheduleItem(
             id: item.id,
             title: item.title,
@@ -121,7 +130,8 @@ public enum ScheduleEngine {
             window: item.window,
             phaseTitle: phase.task.title,
             sectionTitle: section.title,
-            isLocked: phase.isLocked(item, currentWeek: currentWeek)
+            isLocked: phase.isLocked(item, currentWeek: currentWeek),
+            isPulledForwardNextWeek: isPulledForwardNextWeek
         )
     }
 
