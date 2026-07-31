@@ -33,14 +33,22 @@ struct StepDetailView: View {
                 }
 
                 if let description = currentItem.description {
-                    Text(description)
+                    MarkdownBlockView(description)
                         .font(.system(size: 14))
                         .foregroundStyle(DesignTokens.Colors.text.opacity(0.85))
                 }
 
                 if let details = currentItem.details {
                     section("Details") {
-                        Text(details)
+                        MarkdownBlockView(details)
+                            .font(.system(size: 13))
+                            .foregroundStyle(DesignTokens.Colors.text.opacity(0.85))
+                    }
+                }
+
+                if let supplementDetail {
+                    section("실행 문서 (하위 파일)") {
+                        MarkdownBlockView(supplementDetail)
                             .font(.system(size: 13))
                             .foregroundStyle(DesignTokens.Colors.text.opacity(0.85))
                     }
@@ -115,6 +123,11 @@ struct StepDetailView: View {
     /// passed in at sheet-presentation time) so toggles/notes reflect immediately.
     private var currentItem: TaskItem {
         store.document?.item(withId: item.id) ?? item
+    }
+
+    private var supplementDetail: String? {
+        guard let problemId = ProblemDetailParser.problemId(in: currentItem.title) else { return nil }
+        return store.supplementDetail(for: problemId)
     }
 
     private var breadcrumb: String? {

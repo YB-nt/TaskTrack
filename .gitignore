@@ -61,3 +61,8 @@ fastlane/test_output
 # macOS / project-local
 .DS_Store
 .claude/settings.local.json
+.claude/session-log.local.md
+
+# Agent harness working notes (local audit trail, not project deliverable)
+_workspace/
+_workspace_*/
