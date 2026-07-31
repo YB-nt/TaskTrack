@@ -98,8 +98,8 @@ public enum TaskFileWriter {
         var cells = trimmed.components(separatedBy: "|")
         guard columnIndex >= 0, columnIndex < cells.count else { return nil }
         let cellText = cells[columnIndex]
-        let leadingSpace = cellText.prefix(while: { $0 == " " })
-        let trailingSpace = cellText.reversed().prefix(while: { $0 == " " }).reversed()
+        let leadingSpace = String(cellText.prefix(while: { $0 == " " }))
+        let trailingSpace = String(cellText.reversed().prefix(while: { $0 == " " }).reversed())
         cells[columnIndex] = "\(leadingSpace)\(newValue)\(trailingSpace)"
         let rebuilt = cells.joined(separator: "|")
         return "|\(rebuilt)\(hadTrailingPipe ? "|" : "")"
