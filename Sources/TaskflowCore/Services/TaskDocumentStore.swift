@@ -29,6 +29,14 @@ public struct ChangeLogEntry: Identifiable, Equatable {
     public var date: Date
 }
 
+/// A registered "하위 파일" (e.g. `Phase2.md`) — a per-phase write-up of individual
+/// problems, kept separate from `tasks.md` and merged in by `문제 X-Y` id.
+public struct SupplementFile: Identifiable, Equatable {
+    public var id: String { url.path }
+    public var url: URL
+    public var problemCount: Int
+}
+
 /// Owns the single source-of-truth `.md` file: loads it, watches it (per `syncFrequency`),
 /// diffs re-syncs into a change log, and routes every user-initiated mutation (status
 /// change, checklist toggle, detail note) through `TaskFileWriter` so the file itself stays
@@ -41,6 +49,8 @@ public final class TaskDocumentStore {
     public private(set) var lastSyncedAt: Date?
     public private(set) var changeLog: [ChangeLogEntry] = []
     public private(set) var lastError: String?
+    public private(set) var supplementFiles: [SupplementFile] = []
+    private var problemDetails: [String: String] = [:]
 
     public var syncFrequency: SyncFrequency = .manual {
         didSet { reconfigureAutoSync() }
@@ -53,6 +63,7 @@ public final class TaskDocumentStore {
     private var lastWrittenHash: Int?
 
     private static let filePathDefaultsKey = "TaskflowSourceFilePath"
+    private static let supplementPathsDefaultsKey = "TaskflowSupplementFilePaths"
 
     public init() {
         if let savedPath = UserDefaults.standard.string(forKey: Self.filePathDefaultsKey) {
@@ -61,6 +72,13 @@ public final class TaskDocumentStore {
                 fileURL = url
                 sync()
                 reconfigureAutoSync()
+            }
+        }
+        let savedSupplementPaths = UserDefaults.standard.stringArray(forKey: Self.supplementPathsDefaultsKey) ?? []
+        for path in savedSupplementPaths {
+            let url = URL(fileURLWithPath: path)
+            if FileManager.default.fileExists(atPath: url.path) {
+                loadSupplementFile(url: url, persist: false)
             }
         }
     }
@@ -75,6 +93,53 @@ public final class TaskDocumentStore {
         document = nil
         sync()
         reconfigureAutoSync()
+    }
+
+    // MARK: - Supplement files (per-phase problem write-ups, e.g. `Phase2.md`)
+
+    public func addSupplementFile(url: URL) {
+        loadSupplementFile(url: url, persist: true)
+    }
+
+    public func removeSupplementFile(_ file: SupplementFile) {
+        supplementFiles.removeAll { $0.id == file.id }
+        rebuildProblemDetails()
+        var paths = UserDefaults.standard.stringArray(forKey: Self.supplementPathsDefaultsKey) ?? []
+        paths.removeAll { $0 == file.url.path }
+        UserDefaults.standard.set(paths, forKey: Self.supplementPathsDefaultsKey)
+    }
+
+    /// The long-form write-up for a `문제 X-Y` id, merged across every registered
+    /// supplement file (later registrations win on a duplicate id).
+    public func supplementDetail(for problemId: String) -> String? {
+        problemDetails[problemId]
+    }
+
+    private func loadSupplementFile(url: URL, persist: Bool) {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else {
+            lastError = "하위 파일을 읽을 수 없습니다: \(url.lastPathComponent)"
+            return
+        }
+        let parsed = ProblemDetailParser.parse(text)
+        for (id, body) in parsed { problemDetails[id] = body }
+        if let idx = supplementFiles.firstIndex(where: { $0.url == url }) {
+            supplementFiles[idx] = SupplementFile(url: url, problemCount: parsed.count)
+        } else {
+            supplementFiles.append(SupplementFile(url: url, problemCount: parsed.count))
+        }
+        if persist {
+            var paths = UserDefaults.standard.stringArray(forKey: Self.supplementPathsDefaultsKey) ?? []
+            if !paths.contains(url.path) { paths.append(url.path) }
+            UserDefaults.standard.set(paths, forKey: Self.supplementPathsDefaultsKey)
+        }
+    }
+
+    private func rebuildProblemDetails() {
+        problemDetails = [:]
+        for file in supplementFiles {
+            guard let text = try? String(contentsOf: file.url, encoding: .utf8) else { continue }
+            for (id, body) in ProblemDetailParser.parse(text) { problemDetails[id] = body }
+        }
     }
 
     // MARK: - Sync
