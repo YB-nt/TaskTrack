@@ -1,56 +1,30 @@
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <a name="readme-top"></a>
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
-
-
 
 <!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
-
-
 
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
+  <a href="https://github.com/YB-nt/TaskTrack">
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
-  <h3 align="center">Best-README-Template</h3>
+  <h3 align="center">TaskTrack (Taskflow)</h3>
 
   <p align="center">
-    An awesome README template to jumpstart your projects!
+    Task Master 형식 마크다운(tasks.md) 기반 일정 파악 macOS 네이티브 앱
     <br />
-    <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
+    <a href="https://github.com/YB-nt/TaskTrack/issues">Report Bug</a>
     ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Request Feature</a>
+    <a href="https://github.com/YB-nt/TaskTrack/issues">Request Feature</a>
   </p>
 </div>
-
-
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -74,130 +48,102 @@
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
-
-
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+<!-- 스크린샷 추가 예정 -->
 
-There are many great README templates available on GitHub; however, I didn't find one that really suited my needs so I created this enhanced one. I want to create a README template so amazing that it'll be the last one you ever need -- I think this is it.
+Task Master(taskmaster-ai) 형식으로 작성된 `tasks.md`/`tasks_v2.md`를 읽어 진행률·오늘 할 일·마감 임박·락 상태를 파악하는 macOS 앱이다. 별도 오버레이 DB 없이 원본 `.md` 파일 자체를 소스 오브 트루스로 삼아 in-place로 읽고 쓴다.
 
-Here's why:
-* Your time should be focused on creating something amazing. A project that solves a problem and helps others
-* You shouldn't be doing the same tasks over and over like creating a README from scratch
-* You should implement DRY principles to the rest of your life :smile:
+주요 화면:
+* **Dashboard** — 전체 진행률, 오늘 할 일, 마감 임박
+* **Curriculum** — Phase별 Step 목록, 필터/검색
+* **Step Detail** — 설명/선행조건/체크리스트/완료 처리, `문제 X-Y` 형식의 하위 파일(예: `Phase2.md`)이 등록되어 있으면 해당 상세 실행 문서를 함께 표시
+* **Sync** — 연결된 `tasks.md` 경로, 통계, 동기화 주기(Manual/Hourly/Realtime), 변경 이력, 하위 파일 등록/해제
 
-Of course, no one template will serve all projects since your needs may be different. So I'll be adding more in the near future. You may also suggest changes by forking this repo and creating a pull request or opening an issue. Thanks to all the people have contributed to expanding this template!
-
-Use the `BLANK_README.md` to get started.
+디자인은 Claude Design에서 제작한 다크 테마("nocturne")를 macOS 앱 셸(사이드바 내비게이션)로 포팅한 것이다.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 ### Built With
 
-This section should list any major frameworks/libraries used to bootstrap your project. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
-
-* [![Next][Next.js]][Next-url]
-* [![React][React.js]][React-url]
-* [![Vue][Vue.js]][Vue-url]
-* [![Angular][Angular.io]][Angular-url]
-* [![Svelte][Svelte.dev]][Svelte-url]
-* [![Laravel][Laravel.com]][Laravel-url]
-* [![Bootstrap][Bootstrap.com]][Bootstrap-url]
-* [![JQuery][JQuery.com]][JQuery-url]
+* [![Swift][Swift-badge]][Swift-url]
+* SwiftUI (macOS 14+, `@Observable`)
+* Swift Package Manager (외부 의존성 없음)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+* macOS 14 이상
+* Swift 6 툴체인 (Xcode 16+ 또는 Command Line Tools)
 
 ### Installation
 
-_Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
-
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
+1. 레포 클론
    ```sh
-   git clone https://github.com/your_username_/Project-Name.git
+   git clone https://github.com/YB-nt/TaskTrack.git
+   cd TaskTrack
    ```
-3. Install NPM packages
+2. 빌드
    ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
+   swift build
    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+앱 실행:
+```sh
+swift run Taskflow
+```
+실행 후 Sync 탭에서 "Add File"로 실제 `tasks.md`(또는 `tasks_v2.md`)를 선택하면 파싱된 일정이 각 화면에 반영된다. 같은 탭의 "하위 파일" 카드에서 `Phase2.md` 같은 문제별 상세 문서를 등록하면, `문제 X-Y` 토큰이 일치하는 항목의 Step Detail에 상세 실행 문서가 함께 표시된다.
 
-_For more examples, please refer to the [Documentation](https://example.com)_
+테스트 대체 실행(이 프로젝트는 CLT 전용 환경에서 XCTest 런타임 링크가 되지 않아, 일반 executable로 검증 스위트를 대체한다):
+```sh
+swift run TaskflowVerify
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [x] Add Changelog
-- [x] Add back to top links
-- [ ] Add Additional Templates w/ Examples
-- [ ] Add "components" document to easily copy & paste sections of the readme
-- [ ] Multi-language Support
-    - [ ] Chinese
-    - [ ] Spanish
+- [x] 파서/스케줄엔진/디자인시스템/SwiftUI 화면 4개 (Dashboard/Curriculum/Step Detail/Sync)
+- [x] `Phase2.md`류 하위 파일 자동 교차연결 (`문제 X-Y` 토큰 매칭)
+- [ ] 다중 소스 파일 동시 동기화 (현재는 단일 `tasks.md`)
+- [ ] Inter 폰트 번들링
+- [ ] 앱 아이콘 / 샌드박스 / App Store 배포 설정
 
-See the [open issues](https://github.com/othneildrew/Best-README-Template/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/YB-nt/TaskTrack/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTRIBUTING -->
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+이 프로젝트는 [git-flow](https://nvie.com/posts/a-successful-git-branching-model/) 브랜치 전략을 따른다.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+* `main` — 릴리스된 안정 버전만 존재
+* `develop` — 다음 릴리스를 위한 통합 브랜치
+* `feature/*` — `develop`에서 분기, 기능 구현 후 `develop`로 병합
+* `release/*` — `develop`에서 분기, 릴리스 준비 후 `main`과 `develop` 양쪽에 병합 + 태그
+* `hotfix/*` — `main`에서 분기, 긴급 수정 후 `main`과 `develop` 양쪽에 병합
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. `develop`에서 Feature Branch 생성 (`git checkout -b feature/AmazingFeature develop`)
+2. 변경사항 커밋 (`git commit -m 'Add some AmazingFeature'`)
+3. 브랜치 푸시 (`git push origin feature/AmazingFeature`)
+4. `develop`을 대상으로 Pull Request 오픈
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- LICENSE -->
 ## License
@@ -206,65 +152,25 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
+[@YB-nt](https://github.com/YB-nt)
 
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
-
-* [Choose an Open Source License](https://choosealicense.com)
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-* [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
-* [Malven's Grid Cheatsheet](https://grid.malven.co/)
-* [Img Shields](https://shields.io)
-* [GitHub Pages](https://pages.github.com)
-* [Font Awesome](https://fontawesome.com)
-* [React Icons](https://react-icons.github.io/react-icons/search)
+Project Link: [https://github.com/YB-nt/TaskTrack](https://github.com/YB-nt/TaskTrack)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
-[contributors-url]: https://github.com/othneildrew/Best-README-Template/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
-[forks-url]: https://github.com/othneildrew/Best-README-Template/network/members
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
-[stars-url]: https://github.com/othneildrew/Best-README-Template/stargazers
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
-[issues-url]: https://github.com/othneildrew/Best-README-Template/issues
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
-[license-url]: https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
-[product-screenshot]: images/screenshot.png
-[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
-[Next-url]: https://nextjs.org/
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Vue.js]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
-[Vue-url]: https://vuejs.org/
-[Angular.io]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
-[Angular-url]: https://angular.io/
-[Svelte.dev]: https://img.shields.io/badge/Svelte-4A4A55?style=for-the-badge&logo=svelte&logoColor=FF3E00
-[Svelte-url]: https://svelte.dev/
-[Laravel.com]: https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white
-[Laravel-url]: https://laravel.com
-[Bootstrap.com]: https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white
-[Bootstrap-url]: https://getbootstrap.com
-[JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
-[JQuery-url]: https://jquery.com 
+[contributors-shield]: https://img.shields.io/github/contributors/YB-nt/TaskTrack.svg?style=for-the-badge
+[contributors-url]: https://github.com/YB-nt/TaskTrack/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/YB-nt/TaskTrack.svg?style=for-the-badge
+[forks-url]: https://github.com/YB-nt/TaskTrack/network/members
+[stars-shield]: https://img.shields.io/github/stars/YB-nt/TaskTrack.svg?style=for-the-badge
+[stars-url]: https://github.com/YB-nt/TaskTrack/stargazers
+[issues-shield]: https://img.shields.io/github/issues/YB-nt/TaskTrack.svg?style=for-the-badge
+[issues-url]: https://github.com/YB-nt/TaskTrack/issues
+[license-shield]: https://img.shields.io/github/license/YB-nt/TaskTrack.svg?style=for-the-badge
+[license-url]: https://github.com/YB-nt/TaskTrack/blob/main/LICENSE.txt
+[Swift-badge]: https://img.shields.io/badge/Swift-F54A2A?style=for-the-badge&logo=swift&logoColor=white
+[Swift-url]: https://swift.org
