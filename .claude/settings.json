@@ -1,5 +1,8 @@
 {
   "enabledPlugins": {
     "harness@harness-marketplace": true
+  },
+  "worktree": {
+    "baseRef": "head"
   }
 }

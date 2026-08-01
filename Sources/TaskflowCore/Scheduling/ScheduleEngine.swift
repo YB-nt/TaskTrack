@@ -41,7 +41,14 @@ public enum ScheduleEngine {
             let isAheadOfSchedule = overallDelta?.tone == .ahead
             for phase in phases {
                 for section in phase.sections {
-                    guard let next = section.leaves.first(where: { $0.status != .done }) else { continue }
+                    // Prefer a leaf that's actually in-progress over the section's first
+                    // not-done leaf in document order — otherwise a table row (문제 X-Y)
+                    // marked in-progress out of sequence (its section's earlier siblings
+                    // still pending) never surfaces in Today at all, since only one leaf
+                    // per section is picked to represent it.
+                    let next = section.leaves.first(where: { $0.status == .inProgress })
+                        ?? section.leaves.first(where: { $0.status != .done })
+                    guard let next else { continue }
                     guard let startWeek = next.window?.startWeek else { continue }
                     let isCurrentWeek = startWeek <= currentWeek
                     let isPulledForwardNextWeek = isAheadOfSchedule && startWeek == currentWeek + 1
