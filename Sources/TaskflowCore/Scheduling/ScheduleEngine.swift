@@ -134,6 +134,7 @@ public enum ScheduleEngine {
             status: item.status,
             priority: item.priority,
             window: item.window,
+            phaseId: phase.task.id,
             phaseTitle: phase.task.title,
             sectionTitle: section.title,
             isLocked: phase.isLocked(item, currentWeek: currentWeek),

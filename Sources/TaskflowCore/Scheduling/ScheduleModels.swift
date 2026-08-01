@@ -32,6 +32,7 @@ public struct ScheduleItem: Identifiable, Equatable {
     public var status: TaskStatus
     public var priority: Priority?
     public var window: WeekWindow?
+    public var phaseId: String
     public var phaseTitle: String
     public var sectionTitle: String
     public var isLocked: Bool
