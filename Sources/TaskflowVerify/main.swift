@@ -242,6 +242,44 @@ do {
     check("week1: chip 1.2 not locked (predecessor 1.1 done)", chip12?.isLocked == false)
 }
 
+// MARK: - ScheduleEngine: in-progress items sort to the top of "Today" (priority runner-up)
+
+do {
+    let synthetic = """
+    **Project**: Synthetic
+    Week 1 = 2026-01-05 (Mon)
+
+    ## Task 1 — Phase A
+
+    ```
+    # Task ID: 1
+    # Title: Phase A
+    # Status: pending
+    # Dependencies: none
+    # Priority: high
+    ```
+
+    ### Subtasks
+
+    **1.1 — Week 1: High priority, not started** `pending` / deps: none
+    - detail one
+
+    **1.2 — Week 1: Low priority, already in progress** `in-progress` / deps: none
+    - detail two
+    """
+    let doc = TaskMasterMarkdownParser.parse(synthetic)
+    var utc = Calendar(identifier: .gregorian)
+    utc.timeZone = TimeZone(identifier: "UTC")!
+    let now = utc.date(from: DateComponents(year: 2026, month: 1, day: 10))!
+    let schedule = ScheduleEngine.compute(document: doc, now: now)
+
+    check("in-progress sort: 1.1 parsed high priority", doc.item(withId: "1.1")?.priority == .high)
+    check("in-progress sort: 1.2 parsed in-progress, no priority", doc.item(withId: "1.2")?.status == .inProgress)
+    check("in-progress sort: both items present in today", Set(schedule.todayItems.map(\.id)) == Set(["1.1", "1.2"]))
+    check("in-progress sort: in-progress 1.2 sorts before higher-priority-but-pending 1.1",
+          schedule.todayItems.first?.id == "1.2")
+}
+
 // MARK: - ProblemDetailParser (하위 파일, e.g. Phase2.md)
 
 do {
