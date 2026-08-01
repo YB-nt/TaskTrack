@@ -91,9 +91,37 @@ do {
     if let row112 = doc.item(withId: "1.1.2") {
         check("row 1.1.2 status done", row112.status == .done)
         check("row 1.1.2 statusLocation kind", row112.statusLocation?.kind == .tableRow)
+        // Table rows have no week label of their own ("1.1.2" is just an id) — they must
+        // inherit the parent subtask's window ("1.1 — Week 4") or every schedule computation
+        // that reads a leaf's window (active-now, urgency sort, locking, due-soon) silently
+        // no-ops for 3-level documents. This is the exact bug behind "Phase 2 always sorts
+        // to the very bottom of the Dashboard" even while it's clearly the active phase.
+        check("row 1.1.2 inherits parent subtask's window (Week 4)", row112.window?.startWeek == 4 && row112.window?.endWeek == 4)
     } else {
         check("row 1.1.2 exists", false)
     }
+
+    if let row121 = doc.item(withId: "1.2.1") {
+        check("row 1.2.1 inherits parent subtask's window (Week 5, different from 1.1's Week 4)",
+              row121.window?.startWeek == 5 && row121.window?.endWeek == 5)
+    } else {
+        check("row 1.2.1 exists", false)
+    }
+
+    // With window inheritance fixed, Task 1 (Phase 2, W4-9) should sort ahead of Task 2
+    // (Phase 2.5, W10-11) once we're inside Task 1's window — it's still open work with a
+    // week 4-9 window and is now correctly detected as "active now", the opposite of the
+    // pre-fix behavior where its table-row leaves all evaluated as un-windowed and it
+    // dropped to the bottom by every sort key (isActiveNow, urgencyWeek) falling back.
+    var utcCal = Calendar(identifier: .gregorian)
+    utcCal.timeZone = TimeZone(identifier: "UTC")!
+    let midPhase2 = utcCal.date(from: DateComponents(year: 2026, month: 8, day: 15))!
+    let schedule = ScheduleEngine.compute(document: doc, now: midPhase2)
+    check("tasks_v2.md: currentWeek lands in week 5", schedule.currentWeek == 5)
+    check("tasks_v2.md: Phase 2 (Task 1) sorts before Phase 2.5 (Task 2) while its window is active",
+          schedule.phaseTracks.map(\.id) == ["1", "2"])
+    check("tasks_v2.md: Phase 2 phaseTrack is flagged active-now",
+          schedule.phaseTracks.first { $0.id == "1" }?.isActiveNow == true)
 
     if let subtask12 = doc.item(withId: "1.2") {
         check("subtask 1.2 status in-progress", subtask12.status == .inProgress)

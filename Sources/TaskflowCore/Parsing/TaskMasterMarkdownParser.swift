@@ -218,7 +218,7 @@ public enum TaskMasterMarkdownParser {
             if isSectionBoundary(line) { break }
             if trimmed.hasPrefix("|"), i + 1 < bodyEnd, isTableSeparator(lines[i + 1]),
                let table = parseTable(lines: lines, headerIndex: i) {
-                children.append(contentsOf: tableChildren(from: table))
+                children.append(contentsOf: tableChildren(from: table, inheritedWindow: window))
                 i = min(table.endIndex, bodyEnd)
                 continue
             }
@@ -278,7 +278,7 @@ public enum TaskMasterMarkdownParser {
         return ParsedTable(columns: columns, rows: rows, endIndex: i)
     }
 
-    private static func tableChildren(from table: ParsedTable) -> [TaskItem] {
+    private static func tableChildren(from table: ParsedTable, inheritedWindow: WeekWindow?) -> [TaskItem] {
         guard let idCol = table.columns.firstIndex(where: { $0.uppercased().contains("ID") }) else { return [] }
         let statusCol = table.columns.firstIndex(where: { $0.uppercased().contains("STATUS") }) ?? (table.columns.count - 1)
         let titleCol = table.columns.indices.first { $0 != idCol && $0 != statusCol }
@@ -308,7 +308,10 @@ public enum TaskMasterMarkdownParser {
                 status: status,
                 priority: nil,
                 dependencies: [],
-                window: nil,
+                // Table rows (문제 X-Y) don't carry their own week label — they inherit the
+                // parent subtask's window (e.g. "1.1 — Week 4") so schedule math (active-now,
+                // urgency sort, locking, due-soon) has something to key off of at leaf level.
+                window: inheritedWindow,
                 description: nil,
                 details: extraDetails.isEmpty ? nil : extraDetails,
                 testStrategy: [],
