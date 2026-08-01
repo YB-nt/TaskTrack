@@ -69,3 +69,6 @@ _workspace_*/
 
 # Personal reference files (real roadmap/exercise content + symlinks to local paths)
 reference/
+
+# Claude Code session-local git worktrees (isolation artifacts, not project deliverable)
+.claude/worktrees/

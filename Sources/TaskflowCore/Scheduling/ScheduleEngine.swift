@@ -36,17 +36,33 @@ public enum ScheduleEngine {
         var dueSoonItems: [ScheduleItem] = []
 
         if let currentWeek {
-            // 계획보다 앞서가는 중이면(overallDelta.tone == .ahead) 다음 주차에 시작하는
-            // 섹션도 "오늘 할 일"에 미리 당겨온다 — 이번 주 몫을 이미 끝냈다면 다음 걸 보여준다.
             let isAheadOfSchedule = overallDelta?.tone == .ahead
             for phase in phases {
+                // 계획보다 앞서가는 중이고 이 Phase가 이미 시작된 상태라면(문제 하나라도
+                // done/in-progress), 아직 주차가 안 된 섹션 중 "가장 가까운, 아직 안 끝난"
+                // 딱 하나만 오늘 할 일로 당겨온다 — Phase 전체 남은 주차를 다 쏟아내지 않고
+                // "다음 문제"만 보여주기 위함. 섹션의 "끝났음" 판정은 체크포인트/총정리 같은
+                // 부가 항목이 아니라 실제 "문제 X-Y" 항목 기준으로 본다 — 체크포인트 메모가
+                // 안 끝났다고 다음 문제가 안 보이면 안 되므로.
+                let phaseHasStartedWork = phase.leaves.contains { $0.status == .done || $0.status == .inProgress }
+                let nearestUnclearedFutureWeek: Int? = (isAheadOfSchedule && phaseHasStartedWork)
+                    ? phase.sections
+                        .filter { !isClearedForProgression($0) }
+                        .compactMap { section -> Int? in
+                            guard let leaf = section.leaves.first(where: { $0.status != .done }) else { return nil }
+                            guard let startWeek = leaf.window?.startWeek, startWeek > currentWeek else { return nil }
+                            return startWeek
+                        }
+                        .min()
+                    : nil
+
                 for section in phase.sections {
                     guard let next = section.leaves.first(where: { $0.status != .done }) else { continue }
                     guard let startWeek = next.window?.startWeek else { continue }
                     let isCurrentWeek = startWeek <= currentWeek
-                    let isPulledForwardNextWeek = isAheadOfSchedule && startWeek == currentWeek + 1
-                    guard isCurrentWeek || isPulledForwardNextWeek else { continue }
-                    todayItems.append(scheduleItem(next, phase: phase, section: section, currentWeek: currentWeek, isPulledForwardNextWeek: isPulledForwardNextWeek))
+                    let isPulledForward = nearestUnclearedFutureWeek == startWeek
+                    guard isCurrentWeek || isPulledForward else { continue }
+                    todayItems.append(scheduleItem(next, phase: phase, section: section, currentWeek: currentWeek, isPulledForwardNextWeek: isPulledForward))
                 }
             }
             // 지금 진행중인 항목을 최우선으로 올리고, 그 다음은 기존처럼 priority 가중치로 정렬한다.
@@ -97,6 +113,18 @@ public enum ScheduleEngine {
         let title: String
         let leaves: [TaskItem]
         var allDone: Bool { !leaves.isEmpty && leaves.allSatisfy { $0.status == .done } }
+    }
+
+    /// A section counts as "cleared" once every actual `문제 X-Y` item in it is done — a
+    /// trailing checkpoint/summary item left open doesn't hold up progression to the next
+    /// section for the ahead-of-schedule pull-forward. Sections with no `문제`-tagged leaves
+    /// at all (pure checklist sections) fall back to plain `allDone`.
+    private static func isClearedForProgression(_ section: Section) -> Bool {
+        let problemLeaves = section.leaves.filter { ProblemDetailParser.problemId(in: $0.title) != nil }
+        if !problemLeaves.isEmpty {
+            return problemLeaves.allSatisfy { $0.status == .done }
+        }
+        return section.allDone
     }
 
     private struct Phase {

@@ -27,6 +27,30 @@ func loadFixture(_ name: String) -> String {
     return (try? String(contentsOf: url, encoding: .utf8)) ?? ""
 }
 
+// MARK: - WeekWindowParser: Korean-worded "Week 1 = YYYY년 M월 [N]째 주" reference dates
+
+do {
+    var utc = Calendar(identifier: .gregorian)
+    utc.timeZone = TimeZone(identifier: "UTC")!
+    func date(_ y: Int, _ m: Int, _ d: Int) -> Date {
+        utc.date(from: DateComponents(year: y, month: m, day: d))!
+    }
+
+    // "2026년 7월 둘째 주" -> the second Monday of July 2026. July 1, 2026 is a Wednesday,
+    // so the first Monday is the 6th and the second is the 13th — this is the exact
+    // real-world roadmap line that silently disabled all week-relative scheduling (Today,
+    // Due Soon, current-week badge, locking) because the parser only understood literal
+    // ISO dates ("Week 1 = 2026-07-13") and treated anything else as "unavailable".
+    let doc1 = TaskMasterMarkdownParser.parse("Week 1 = 2026년 7월 둘째 주\n\n## Task 1 — X\n```\n# Task ID: 1\n# Title: X\n# Status: pending\n```\n")
+    check("Korean week1: '2026년 7월 둘째 주' resolves to 2026-07-13", doc1.week1ReferenceDate == date(2026, 7, 13))
+
+    let doc2 = TaskMasterMarkdownParser.parse("Week 1 = 2026년 1월 첫째 주\n\n## Task 1 — X\n```\n# Task ID: 1\n# Title: X\n# Status: pending\n```\n")
+    check("Korean week1: '첫째' (1st) resolves correctly", doc2.week1ReferenceDate == date(2026, 1, 5))
+
+    let docNone = TaskMasterMarkdownParser.parse("이 문서엔 주차 기준선이 없다.\n\n## Task 1 — X\n```\n# Task ID: 1\n# Title: X\n# Status: pending\n```\n")
+    check("no week1 line: still degrades to nil, not a crash", docNone.week1ReferenceDate == nil)
+}
+
 // MARK: - tasks.md (2-level: Task → Subtask)
 
 do {
@@ -270,6 +294,72 @@ do {
     check("week1: chip 1.3 isLocked (predecessor 1.2 pending)", chip13?.isLocked == true)
     let chip12 = phaseTrack?.chips.first { $0.id == "1.2" }
     check("week1: chip 1.2 not locked (predecessor 1.1 done)", chip12?.isLocked == false)
+}
+
+// MARK: - ScheduleEngine: pull-forward reaches past an unfinished checkpoint, but doesn't
+// leak into unrelated not-yet-started phases (real-world bug: tasks.json said "next: 7-2"
+// but 7-2 never showed in Today because it's 2 weeks out and a same-week checkpoint item
+// was still pending).
+
+do {
+    let synthetic = """
+    **Project**: Synthetic
+    Week 1 = 2026-01-05 (Mon)
+
+    ## Task 1 — Phase Active (already has done work)
+
+    ```
+    # Task ID: 1
+    # Title: Phase Active
+    # Status: pending
+    # Dependencies: none
+    # Priority: high
+    ```
+
+    ### Subtasks
+
+    **1.1 — Week 2: first section, already worked ahead** `pending` / deps: none
+    | ID | Title | Status |
+    |---|---|---|
+    | 1.1.1 | 문제 1-1 — done problem | done |
+    | 1.1.2 | 체크포인트 — still pending, not a 문제 | pending |
+
+    **1.2 — Week 3: second section, the real next problem** `pending` / deps: 1.1
+    | ID | Title | Status |
+    |---|---|---|
+    | 1.2.1 | 문제 2-1 — the real next problem | pending |
+
+    ## Task 2 — Phase Untouched (nothing done yet)
+
+    ```
+    # Task ID: 2
+    # Title: Phase Untouched
+    # Status: pending
+    # Dependencies: none
+    # Priority: high
+    ```
+
+    ### Subtasks
+
+    **2.1 — Week 3: also future, but this whole phase is untouched** `pending` / deps: none
+    - detail
+    """
+    let doc = TaskMasterMarkdownParser.parse(synthetic)
+    var utc = Calendar(identifier: .gregorian)
+    utc.timeZone = TimeZone(identifier: "UTC")!
+    let now = utc.date(from: DateComponents(year: 2026, month: 1, day: 5))! // week 1 — before either section's window
+    let schedule = ScheduleEngine.compute(document: doc, now: now)
+
+    check("checkpoint-skip: currentWeek == 1", schedule.currentWeek == 1)
+    check("checkpoint-skip: overall is ahead (already finished a Week-2 problem while still in week 1)", schedule.overallDelta?.tone == .ahead)
+    check("checkpoint-skip: 문제 2-1 (Week 3, in the already-active phase) pulls forward despite the Week 2 checkpoint still being open",
+          schedule.todayItems.contains { $0.id == "1.2.1" })
+    check("checkpoint-skip: the still-open checkpoint itself does NOT show (it's cleared-for-progression, not literally done)",
+          !schedule.todayItems.contains { $0.id == "1.1.2" })
+    check("checkpoint-skip: Task 2's Week-3 section does NOT pull forward — that whole phase hasn't started",
+          !schedule.todayItems.contains { $0.id == "2.1" })
+    check("checkpoint-skip: today list is exactly [1.2.1], not flooded with every future section",
+          schedule.todayItems.map(\.id) == ["1.2.1"])
 }
 
 // MARK: - ScheduleEngine: in-progress items sort to the top of "Today" (priority runner-up)

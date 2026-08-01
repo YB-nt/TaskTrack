@@ -123,7 +123,7 @@ struct DashboardView: View {
                             }
                             Spacer()
                             if item.isPulledForwardNextWeek {
-                                TagView("다음주", style: .outline)
+                                TagView("예정", style: .outline)
                             }
                             if let priority = item.priority {
                                 TagView(priority.displayLabel, style: item.isLocked ? .neutral : .accent2)
