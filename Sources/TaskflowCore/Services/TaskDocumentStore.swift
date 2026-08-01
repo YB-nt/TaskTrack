@@ -95,6 +95,54 @@ public final class TaskDocumentStore {
         reconfigureAutoSync()
     }
 
+    /// Lets a view surface a validation error (e.g. an unparseable URL string) that never
+    /// made it far enough to go through `importSourceFile`/`importSupplementFile` themselves.
+    public func reportError(_ message: String) {
+        lastError = message
+    }
+
+    // MARK: - GitHub import (alternative to manually picking a downloaded file)
+
+    /// Fetches `githubURL` (a `github.com/.../blob/...` or `raw.githubusercontent.com` link)
+    /// and adopts the result as the main source file — same as `chooseFile`, just fetched
+    /// instead of hand-picked. The fetched text is cached to a plain local file first, so the
+    /// source of truth stays "a `.md` file on disk" and Mark Complete/checklist edits keep
+    /// working exactly the same way (they just don't push back to GitHub).
+    public func importSourceFile(fromGitHub githubURL: URL, token: String?) async {
+        await importGitHubFile(githubURL, token: token, onSuccess: chooseFile(url:))
+    }
+
+    /// Same as `importSourceFile(fromGitHub:token:)` but registers the result as a 하위 파일
+    /// (e.g. a `Phase2.md`) instead of the main source.
+    public func importSupplementFile(fromGitHub githubURL: URL, token: String?) async {
+        await importGitHubFile(githubURL, token: token, onSuccess: addSupplementFile(url:))
+    }
+
+    private func importGitHubFile(_ githubURL: URL, token: String?, onSuccess: (URL) -> Void) async {
+        guard let reference = GitHubFileFetcher.parse(githubURL) else {
+            lastError = GitHubFileFetcher.FetchError.invalidURL.localizedDescription
+            return
+        }
+        do {
+            let text = try await GitHubFileFetcher.fetchContent(reference, token: token)
+            let localURL = try Self.cacheGitHubFile(text: text, reference: reference)
+            lastError = nil
+            onSuccess(localURL)
+        } catch {
+            lastError = "GitHub에서 가져오지 못했습니다: \(error.localizedDescription)"
+        }
+    }
+
+    private static func cacheGitHubFile(text: String, reference: GitHubFileFetcher.Reference) throws -> URL {
+        let cacheDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Taskflow/GitHubImports/\(reference.owner)/\(reference.repo)", isDirectory: true)
+        try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        let filename = (reference.path as NSString).lastPathComponent
+        let localURL = cacheDir.appendingPathComponent(filename)
+        try text.write(to: localURL, atomically: true, encoding: .utf8)
+        return localURL
+    }
+
     // MARK: - Supplement files (per-phase problem write-ups, e.g. `Phase2.md`)
 
     public func addSupplementFile(url: URL) {

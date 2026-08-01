@@ -3,6 +3,9 @@ import TaskflowCore
 
 struct SyncView: View {
     var store: TaskDocumentStore
+    @State private var githubURLText: String = ""
+    @AppStorage("TaskflowGitHubToken") private var githubToken: String = ""
+    @State private var isImportingFromGitHub = false
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
@@ -16,6 +19,7 @@ struct SyncView: View {
                 Text("Sync").font(DesignTokens.Typography.heading(20))
 
                 fileCard
+                githubImportCard
                 supplementCard
                 if store.document != nil {
                     statsRow
@@ -104,6 +108,51 @@ struct SyncView: View {
                 Text(label).font(.system(size: 11)).foregroundStyle(DesignTokens.Colors.neutral400)
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var githubImportCard: some View {
+        CardView(elevated: true) {
+            Text("GitHub에서 가져오기")
+                .font(DesignTokens.Typography.heading(14))
+            Text("파일 페이지 URL을 붙여넣으세요 (github.com/.../blob/... 또는 raw.githubusercontent.com/...)")
+                .font(.system(size: 11))
+                .foregroundStyle(DesignTokens.Colors.neutral400)
+            TextField("https://github.com/owner/repo/blob/main/tasks.md", text: $githubURLText)
+                .textFieldStyle(.plain)
+                .padding(8)
+                .background(DesignTokens.Colors.surface)
+                .overlay(RoundedRectangle(cornerRadius: DesignTokens.Radius.md).stroke(DesignTokens.Colors.divider, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.md))
+            SecureField("Personal Access Token (비공개 저장소만 필요, 선택)", text: $githubToken)
+                .textFieldStyle(.plain)
+                .padding(8)
+                .background(DesignTokens.Colors.surface)
+                .overlay(RoundedRectangle(cornerRadius: DesignTokens.Radius.md).stroke(DesignTokens.Colors.divider, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: DesignTokens.Radius.md))
+            HStack(spacing: 10) {
+                Button("메인 파일로 가져오기") { importFromGitHub(asSupplement: false) }
+                    .buttonStyle(.taskflowSecondary)
+                Button("하위 파일로 추가") { importFromGitHub(asSupplement: true) }
+                    .buttonStyle(.taskflowSecondary)
+            }
+            .disabled(githubURLText.isEmpty || isImportingFromGitHub)
+        }
+    }
+
+    private func importFromGitHub(asSupplement: Bool) {
+        guard let url = URL(string: githubURLText) else {
+            store.reportError("GitHub URL 형식이 올바르지 않습니다.")
+            return
+        }
+        isImportingFromGitHub = true
+        Task {
+            if asSupplement {
+                await store.importSupplementFile(fromGitHub: url, token: githubToken)
+            } else {
+                await store.importSourceFile(fromGitHub: url, token: githubToken)
+            }
+            isImportingFromGitHub = false
         }
     }
 

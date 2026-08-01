@@ -166,6 +166,24 @@ do {
     }
 }
 
+// MARK: - GitHubFileFetcher.parse (URL recognition only — no network calls in this suite)
+
+do {
+    let blobURL = URL(string: "https://github.com/YB-nt/TaskTrack/blob/develop/reference/tasks.md")!
+    let parsed = GitHubFileFetcher.parse(blobURL)
+    check("github: blob URL parses owner", parsed?.owner == "YB-nt")
+    check("github: blob URL parses repo", parsed?.repo == "TaskTrack")
+    check("github: blob URL parses ref (branch)", parsed?.ref == "develop")
+    check("github: blob URL parses nested path", parsed?.path == "reference/tasks.md")
+
+    let rawURL = URL(string: "https://raw.githubusercontent.com/YB-nt/TaskTrack/main/README.md")!
+    let parsedRaw = GitHubFileFetcher.parse(rawURL)
+    check("github: raw URL parses owner/repo/ref/path", parsedRaw == GitHubFileFetcher.Reference(owner: "YB-nt", repo: "TaskTrack", ref: "main", path: "README.md"))
+
+    check("github: non-GitHub host is rejected", GitHubFileFetcher.parse(URL(string: "https://example.com/owner/repo/blob/main/x.md")!) == nil)
+    check("github: github.com URL missing /blob/ is rejected", GitHubFileFetcher.parse(URL(string: "https://github.com/YB-nt/TaskTrack")!) == nil)
+}
+
 // MARK: - TaskFileWriter (in-place status/checklist edits, round-tripped through the parser)
 
 do {
