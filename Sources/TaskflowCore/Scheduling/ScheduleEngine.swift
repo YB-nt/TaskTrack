@@ -49,7 +49,13 @@ public enum ScheduleEngine {
                     todayItems.append(scheduleItem(next, phase: phase, section: section, currentWeek: currentWeek, isPulledForwardNextWeek: isPulledForwardNextWeek))
                 }
             }
-            todayItems.sort { ($0.priority?.weight ?? 0) > ($1.priority?.weight ?? 0) }
+            // 지금 진행중인 항목을 최우선으로 올리고, 그 다음은 기존처럼 priority 가중치로 정렬한다.
+            todayItems.sort { lhs, rhs in
+                let lhsInProgress = lhs.status == .inProgress
+                let rhsInProgress = rhs.status == .inProgress
+                if lhsInProgress != rhsInProgress { return lhsInProgress }
+                return (lhs.priority?.weight ?? 0) > (rhs.priority?.weight ?? 0)
+            }
 
             if let week1 = document.week1ReferenceDate {
                 for phase in phases {

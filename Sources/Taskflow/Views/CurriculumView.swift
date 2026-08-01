@@ -132,5 +132,9 @@ struct CurriculumView: View {
             filter.matches(item.status) &&
             (searchText.isEmpty || item.title.localizedCaseInsensitiveContains(searchText))
         }
+        // 지금 진행중인(in-progress) 항목을 목록 상단으로 올린다 — 나머지는 원래(문서) 순서 유지.
+        .sorted { lhs, rhs in
+            (lhs.status == .inProgress ? 0 : 1) < (rhs.status == .inProgress ? 0 : 1)
+        }
     }
 }
