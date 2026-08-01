@@ -49,7 +49,7 @@ public enum ScheduleEngine {
                     ? phase.sections
                         .filter { !isClearedForProgression($0) }
                         .compactMap { section -> Int? in
-                            guard let leaf = section.leaves.first(where: { $0.status != .done }) else { return nil }
+                            guard let leaf = representativeLeaf(of: section) else { return nil }
                             guard let startWeek = leaf.window?.startWeek, startWeek > currentWeek else { return nil }
                             return startWeek
                         }
@@ -57,7 +57,7 @@ public enum ScheduleEngine {
                     : nil
 
                 for section in phase.sections {
-                    guard let next = section.leaves.first(where: { $0.status != .done }) else { continue }
+                    guard let next = representativeLeaf(of: section) else { continue }
                     guard let startWeek = next.window?.startWeek else { continue }
                     let isCurrentWeek = startWeek <= currentWeek
                     let isPulledForward = nearestUnclearedFutureWeek == startWeek
@@ -113,6 +113,15 @@ public enum ScheduleEngine {
         let title: String
         let leaves: [TaskItem]
         var allDone: Bool { !leaves.isEmpty && leaves.allSatisfy { $0.status == .done } }
+    }
+
+    /// The single leaf that represents a section in "Today": prefer one that's actually
+    /// in-progress over just the first not-done leaf in document order — otherwise a table
+    /// row (문제 X-Y) marked in-progress out of sequence (an earlier sibling row in the same
+    /// section still pending) never surfaces at all, since only one leaf per section gets
+    /// picked to represent it.
+    private static func representativeLeaf(of section: Section) -> TaskItem? {
+        section.leaves.first(where: { $0.status == .inProgress }) ?? section.leaves.first(where: { $0.status != .done })
     }
 
     /// A section counts as "cleared" once every actual `문제 X-Y` item in it is done — a
