@@ -4,7 +4,7 @@ Task Master(taskmaster-ai) 형식의 `tasks.md`를 읽어 진행률·오늘 할 
 
 ## 화면
 
-- **Dashboard** — 전체 진행률, 오늘 할 일, 마감 임박
+- **Dashboard** — 전체 진행률, 오늘 할 일(진행중 항목 우선 정렬, 앞서갈 때 다음 문제 자동 포함), 마감 임박. 항목/Phase 카드를 클릭하면 Curriculum으로 이동해 세부 내용을 바로 확인
 - **Curriculum** — Phase별 Step 목록, 필터/검색
 - **Step Detail** — 설명/체크리스트/완료 처리, `문제 X-Y` 하위 파일(예: `Phase2.md`) 자동 매칭
 - **Sync** — 소스 파일 연결, 동기화 주기, 변경 이력
