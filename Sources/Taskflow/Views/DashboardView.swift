@@ -106,6 +106,7 @@ struct DashboardView: View {
             } else {
                 ForEach(items) { item in
                     Button {
+                        onSelectPhase(item.phaseId)
                         selectedItemId = item.id
                     } label: {
                         HStack(spacing: 12) {

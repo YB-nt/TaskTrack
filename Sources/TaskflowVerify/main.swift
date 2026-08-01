@@ -248,6 +248,8 @@ do {
     check("week1: today list pulls forward only 1.2 (next week, since ahead)", scheduleWeek1.todayItems.map(\.id) == ["1.2"])
     check("week1: 1.2 flagged as pulled forward", scheduleWeek1.todayItems.first?.isPulledForwardNextWeek == true)
     check("week1: 1.2 not locked (predecessor 1.1 done)", scheduleWeek1.todayItems.first?.isLocked == false)
+    check("week1: today item carries its top-level phaseId (for Dashboard→Curriculum jump)",
+          scheduleWeek1.todayItems.first?.phaseId == "1")
 
     // now = week 3 (2026-01-20): 1.2 and 1.3 have both started; 1.2 unlocks early because
     // its predecessor (1.1) is done, 1.3 stays locked because its predecessor (1.2) isn't.
