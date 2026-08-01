@@ -310,6 +310,47 @@ do {
           schedule.todayItems.first?.id == "1.2")
 }
 
+// MARK: - ScheduleEngine: in-progress table row buried behind a pending sibling still
+// surfaces in "Today" (3-level tasks_v2.md shape — a subtask's section has multiple leaves,
+// and only one leaf per section is picked to represent it in Today)
+
+do {
+    let synthetic = """
+    **Project**: Synthetic
+    Week 1 = 2026-01-05 (Mon)
+
+    ## Task 1 — Phase A
+
+    ```
+    # Task ID: 1
+    # Title: Phase A
+    # Status: pending
+    # Dependencies: none
+    # Priority: high
+    ```
+
+    ### Subtasks
+
+    **1.1 — Week 1: Section with a buried in-progress row** `pending` / deps: none
+
+    | ID | Title | Status |
+    |---|---|---|
+    | 1.1.1 | Row one, still pending | pending |
+    | 1.1.2 | Row two, actually in progress | in-progress |
+    """
+    let doc = TaskMasterMarkdownParser.parse(synthetic)
+    var utc = Calendar(identifier: .gregorian)
+    utc.timeZone = TimeZone(identifier: "UTC")!
+    let now = utc.date(from: DateComponents(year: 2026, month: 1, day: 10))!
+    let schedule = ScheduleEngine.compute(document: doc, now: now)
+
+    check("buried in-progress: row 1.1.2 parsed in-progress", doc.item(withId: "1.1.2")?.status == .inProgress)
+    check("buried in-progress: row 1.1.1 parsed pending (document order comes first)",
+          doc.item(withId: "1.1.1")?.status == .pending)
+    check("buried in-progress: Today represents the section with the in-progress row, not the earlier pending one",
+          schedule.todayItems.map(\.id) == ["1.1.2"])
+}
+
 // MARK: - ProblemDetailParser (하위 파일, e.g. Phase2.md)
 
 do {
